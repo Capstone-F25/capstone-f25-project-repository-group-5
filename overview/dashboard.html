@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medbed Systems Dashboard</title>
+
+    <!-- shared styles -->
+    <link rel="stylesheet" href="../shared/variables.css" />
+    <link rel="stylesheet" href="../shared/layout.css" />
+    <link rel="stylesheet" href="../shared/components.css" />
+    <!-- page-specific -->
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+
+  <body class="dashboard-page">
+
+    <!-- =========================
+         SIDEBAR
+         ========================= -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <img src="../images/Med.jpg" alt="Medbed Systems logo" class="brand-logo" />
+          <div class="logo-text">
+            <span>Medbed Systems</span>
+          </div>
+        </div>
+
+        <div class="sidebar-user">
+          <div class="avatar-circle" id="userInitials">JS</div>
+          <div class="user-meta">
+            <span class="user-name" id="userName">Loading...</span>
+            <span class="user-role" id="userRole">Role...</span>
+          </div>
+        </div>
+      </div>
+
+
+      <nav class="sidebar-nav">
+        <p class="sidebar-label">Overview</p>
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="insights.html">Insights</a>
+
+        <p class="sidebar-label">Operations</p>
+        <a href="../operations/patients.html">Patients</a>
+        <a href="../operations/manage-beds.html">Manage beds</a>
+        <a href="../operations/manage-rooms.html">Manage rooms</a>
+
+        <a href="../index.html" class="logout-link">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- =========================
+         MAIN CONTENT
+         ========================= -->
+
+    <main class="dashboard-content">
+      <header class="topbar">
+        <div></div>
+        <div class="topbar-pill">
+          <span class="pill-label">Today</span>
+          <span class="pill-value" id="todayValue">—</span>
+        </div>
+      </header>
+
+      <section class="page-header">
+        <h2>Hospital bed overview</h2>
+        <p class="page-subtitle">
+          View real-time occupancy across all wards, and update the status of individual beds.
+        </p>
+      </section>
+
+      <!-- TOP ROW -->
+      <section class="top-row top-row-main">
+        <div class="card occupancy-card">
+          <h3>Occupancy</h3>
+
+          <p class="big-number">
+            <span id="overallOccupancyPercent">—</span><span class="big-number-unit">%</span>
+          </p>
+
+          <p class="muted">
+            <span id="overallOccupiedBeds">—</span> of
+            <span id="overallTotalBeds">—</span> beds in use
+          </p>
+
+          <hr class="card-divider" />
+
+          <div class="status-header">Bed status</div>
+          <ul class="status-list vertical-status">
+            <li><span class="status-label status-available">Available</span> <span id="countAvailable">—</span></li>
+            <li><span class="status-label status-occupied">Occupied</span> <span id="countOccupied">—</span></li>
+            <li><span class="status-label status-reserved">Reserved</span> <span id="countReserved">—</span></li>
+            <li><span class="status-label status-cleaning">Cleaning</span> <span id="countCleaning">—</span></li>
+            <li><span class="status-label status-transferring">Transferring</span> <span id="countTransferring">—</span></li>
+          </ul>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-frame">
+            <iframe
+              src="https://lookerstudio.google.com/embed/reporting/6e261ff2-c6fa-45c8-8a08-9237021c09ca/page/ZQWgF"
+              width="100%" height="100%" frameborder="0" style="border:0;"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- WARDS -->
+      <section class="page-section">
+        <div class="section-header">
+          <h3>Wards overview</h3>
+          <p class="muted">Current occupancy by ward.</p>
+        </div>
+
+        <div class="wards-row">
+          <div class="card ward-card">
+            <h4 id="ward-1-name">ICU North</h4>
+            <p><span id="ward-1-total">—</span> beds</p>
+            <p><span id="ward-1-inuse">—</span> in use</p>
+            <p><span id="ward-1-available">—</span> available</p>
+          </div>
+
+          <div class="card ward-card">
+            <h4 id="ward-2-name">General East</h4>
+            <p><span id="ward-2-total">—</span> beds</p>
+            <p><span id="ward-2-inuse">—</span> in use</p>
+            <p><span id="ward-2-available">—</span> available</p>
+          </div>
+
+          <div class="card ward-card">
+            <h4 id="ward-3-name">Isolation South</h4>
+            <p><span id="ward-3-total">—</span> beds</p>
+            <p><span id="ward-3-inuse">—</span> in use</p>
+            <p><span id="ward-3-available">—</span> available</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- UPDATE BED -->
+      <section class="card">
+        <h3>Update bed status</h3>
+        <p class="muted">Choose a bed and update its current status.</p>
+
+        <div class="filters-row">
+          <select id="bedSelect" class="input-select">
+            <option>Loading beds…</option>
+          </select>
+
+          <select id="statusSelect" class="input-select">
+            <option value="available">Available</option>
+            <option value="occupied">Occupied</option>
+            <option value="reserved">Reserved</option>
+            <option value="cleaning">Cleaning</option>
+            <option value="transferring">Transferring</option>
+          </select>
+
+          <input id="patientIdInput" class="input-select" placeholder="Patient ID (only for Occupied)" style="max-width:180px;" />
+
+          <button class="small-btn" type="button" onclick="updateBed()">Update bed</button>
+        </div>
+      </section>
+
+      <!-- DETAILS -->
+      <section class="top-row">
+        <div class="card">
+          <h3>Bed details</h3>
+          <div id="bedInfoBox" style="display:none; margin-top: 10px;">
+            <p id="bedInfoContent"></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Patient details</h3>
+          <div id="patientInfo" style="display:none; margin-top: 10px;">
+            <p><strong>Patient ID:</strong> <span id="pi_id"></span></p>
+            <p><strong>Name:</strong> <span id="pi_name"></span></p>
+            <p><strong>Admission status:</strong> <span id="pi_status"></span></p>
+            <p><strong>Bed status:</strong> <span id="pi_bed_status"></span></p>
+            <p><strong>Bed type:</strong> <span id="pi_bed_type"></span></p>
+            <p><strong>Ward:</strong> <span id="pi_ward"></span></p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- =========================
+         JAVASCRIPT
+         ========================= -->
+    <script>
+      const API_BASE = "https://ingest-service-725327609427.us-east5.run.app";
+
+      const WARD_LABELS = {1:"ICU North",2:"General East",3:"Isolation South"};
+      let ALL_BEDS = [];
+
+      function setToday() {
+        document.getElementById("todayValue").textContent =
+          new Date().toLocaleString("en-US", { month:"short", day:"numeric" });
+      }
+
+      // ---------------------------
+      // LOAD BEDS
+      // ---------------------------
+      async function loadBeds() {
+        try {
+          const res = await fetch(`${API_BASE}/beds`);
+          ALL_BEDS = await res.json();
+
+          const select = document.getElementById("bedSelect");
+          select.innerHTML = "";
+
+          ALL_BEDS.forEach(b => {
+            const opt = document.createElement("option");
+            opt.value = b.bed_id;
+            opt.dataset.bedNumber = b.bed_number;
+            opt.textContent = `Bed ${b.bed_number} (${WARD_LABELS[b.ward_id]})`;
+            select.appendChild(opt);
+          });
+
+          if (ALL_BEDS.length > 0) {
+            const first = ALL_BEDS[0];
+            select.value = first.bed_id;
+            loadBedInfo(first.bed_number);
+            loadPatientInfo(first.bed_number);
+          }
+
+          updateOverviewCards();
+
+          select.onchange = e => {
+            const chosen = ALL_BEDS.find(b => b.bed_id == e.target.value);
+            if (!chosen) return;
+            loadBedInfo(chosen.bed_number);
+            loadPatientInfo(chosen.bed_number);
+          };
+
+        } catch (err) {
+          console.error("Error loading beds:", err);
+        }
+      }
+
+      // ---------------------------
+      // UPDATE BED
+      // ---------------------------
+      async function updateBed() {
+        const bedId = parseInt(document.getElementById("bedSelect").value);
+        const option = document.querySelector(`#bedSelect option[value="${bedId}"]`);
+        const bedNumber = option?.dataset.bedNumber;
+
+        if (!bedNumber) {
+          alert("Missing bed_number");
+          return;
+        }
+
+        const status = document.getElementById("statusSelect").value;
+        const pidRaw = document.getElementById("patientIdInput").value.trim();
+        let patient_id = null;
+
+        if (status === "occupied") {
+          if (!pidRaw) {
+            alert("When setting to 'Occupied', enter a patient ID.");
+            return;
+          }
+          patient_id = parseInt(pidRaw, 10);
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/beds/assign`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bed_number: bedNumber,
+              bed_status: status,
+              patient_id: patient_id,
+            }),
+          });
+
+          const msg = await res.text();
+          if (!res.ok) {
+            alert(msg || "Update failed");
+            return;
+          }
+
+          alert("Bed updated successfully!");
+
+          loadBeds();
+          loadBedInfo(bedNumber);
+          loadPatientInfo(bedNumber);
+
+        } catch (err) {
+          console.error("Error updating bed:", err);
+          alert("Failed to update bed.");
+        }
+      }
+
+      // ---------------------------
+      // LOAD BED INFO
+      // ---------------------------
+      async function loadBedInfo(bedNumber) {
+        try {
+          const res = await fetch(`${API_BASE}/beds/${bedNumber}`);
+          if (!res.ok) return;
+
+          const d = await res.json();
+          const box = document.getElementById("bedInfoBox");
+
+          box.style.display = "block";
+          document.getElementById("bedInfoContent").innerHTML = `
+            <strong>Bed:</strong> ${d.bed_number}<br>
+            <strong>Status:</strong> ${d.bed_status}<br>
+            <strong>Type:</strong> ${d.bed_type}<br>
+            <strong>Ward:</strong> ${d.ward_name} (Floor ${d.floor_number})<br>
+            <strong>Patient:</strong> ${d.patient_id ?? "None"}
+          `;
+        } catch (err) {
+          console.error("Error loading bed info:", err);
+        }
+      }
+
+      // ---------------------------
+      // LOAD PATIENT INFO
+      // ---------------------------
+      async function loadPatientInfo(bedNumber) {
+        const box = document.getElementById("patientInfo");
+
+        try {
+          const res = await fetch(`${API_BASE}/beds/${bedNumber}`);
+          if (!res.ok) { box.style.display="none"; return; }
+
+          const d = await res.json();
+
+          document.getElementById("pi_id").textContent = d.patient_id ?? "None";
+          document.getElementById("pi_name").textContent = d.first_name
+            ? `${d.first_name} ${d.last_name}` : "No patient";
+          document.getElementById("pi_status").textContent = d.admission_status ?? "N/A";
+          document.getElementById("pi_bed_status").textContent = d.bed_status;
+          document.getElementById("pi_bed_type").textContent = d.bed_type;
+          document.getElementById("pi_ward").textContent = d.ward_name;
+
+          box.style.display = "block";
+
+        } catch (err) {
+          console.error("Error loading patient info:", err);
+          box.style.display = "none";
+        }
+      }
+
+      // ---------------------------
+      // OVERVIEW CARDS
+      // ---------------------------
+      function updateOverviewCards() {
+        const total = ALL_BEDS.length;
+        const c = {available:0, occupied:0, reserved:0, cleaning:0, transferring:0};
+
+        ALL_BEDS.forEach(b => { if (c[b.bed_status] !== undefined) c[b.bed_status]++; });
+
+        const inUse = c.occupied + c.transferring;
+        const pct = total ? Math.round((inUse/total)*100) : 0;
+
+        document.getElementById("overallTotalBeds").textContent = total;
+        document.getElementById("overallOccupiedBeds").textContent = inUse;
+        document.getElementById("overallOccupancyPercent").textContent = pct;
+
+        document.getElementById("countAvailable").textContent = c.available;
+        document.getElementById("countOccupied").textContent = c.occupied;
+        document.getElementById("countReserved").textContent = c.reserved;
+        document.getElementById("countCleaning").textContent = c.cleaning;
+        document.getElementById("countTransferring").textContent = c.transferring;
+
+        ["1","2","3"].forEach(wid => {
+          const s = ALL_BEDS.filter(b => b.ward_id == wid);
+          const occ = s.filter(b => b.bed_status === "occupied" || b.bed_status === "transferring").length;
+          const avail = s.filter(b => b.bed_status === "available").length;
+
+          document.getElementById(`ward-${wid}-total`).textContent = s.length;
+          document.getElementById(`ward-${wid}-inuse`).textContent = occ;
+          document.getElementById(`ward-${wid}-available`).textContent = avail;
+        });
+      }
+
+      // RUN
+      window.addEventListener("load", () => {
+        setToday();
+        loadBeds();
+      });
+    </script>
+
+    </script>
+
+    <!-- FIREBASE / AUTH USER DISPLAY -->
+    <script type="module">
+      import { loadUserProfile, logout } from "../shared/auth.js";
+      loadUserProfile().then(data => {
+        document.getElementById("userName").textContent = data.fullName;
+        document.getElementById("userRole").textContent = data.role;
+        document.getElementById("userInitials").textContent =
+          data.fullName.split(" ").map(x => x[0]).join("");
+      });
+
+      document.querySelector(".logout-link").addEventListener("click", (e) => {
+        e.preventDefault();
+        logout();
+      });
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Beds – Medbed Systems</title>
+
+  <!-- shared styles -->
+  <link rel="stylesheet" href="../shared/variables.css" />
+  <link rel="stylesheet" href="../shared/layout.css" />
+  <link rel="stylesheet" href="../shared/components.css" />
+
+  <!-- page-specific -->
+  <link rel="stylesheet" href="manage-beds.css" />
+</head>
+
+<body class="dashboard-page">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <img src="../images/Med.jpg" class="brand-logo" alt="Medbed Systems logo" />
+        <div class="logo-text"><span>Medbed Systems</span></div>
+      </div>
+
+      <div class="sidebar-user">
+        <div class="avatar-circle" id="userInitials">JS</div>
+        <div class="user-meta">
+          <span class="user-name" id="userName">Loading...</span>
+          <span class="user-role" id="userRole">Role...</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <p class="sidebar-label">Overview</p>
+      <a href="../overview/dashboard.html">Dashboard</a>
+      <a href="../overview/insights.html">Insights</a>
+
+      <p class="sidebar-label">Operations</p>
+      <a href="patients.html">Patients</a>
+      <a href="manage-beds.html" class="active">Manage beds</a>
+      <a href="manage-rooms.html">Manage rooms</a>
+
+      <a href="../index.html" class="logout-link">Logout</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="dashboard-content">
+    <header class="topbar">
+      <div></div>
+      <div class="topbar-pill">
+        <span class="pill-label">Today</span>
+        <span class="pill-value" id="todayValue">—</span>
+      </div>
+    </header>
+
+    <section class="page-header">
+      <h2>Manage beds</h2>
+      <p class="page-subtitle">
+        View all beds, see which ward and room they belong to, and filter by status.
+      </p>
+    </section>
+
+    <!-- FILTER BAR -->
+    <section class="card beds-filter-card">
+      <select class="input-select" id="filterWard">
+        <option value="">All wards</option>
+      </select>
+
+      <select class="input-select" id="filterStatus">
+        <option value="">All statuses</option>
+        <option value="available">Available</option>
+        <option value="occupied">Occupied</option>
+        <option value="reserved">Reserved</option>
+        <option value="cleaning">Cleaning</option>
+        <option value="transferring">Transferring</option>
+      </select>
+
+      <button class="small-btn" id="applyFiltersBtn">Apply filters</button>
+    </section>
+
+    <!-- TABLE -->
+    <section class="card">
+      <div class="table-wrapper">
+        <table class="data-table" id="bedsTable">
+          <thead>
+            <tr>
+              <th>Bed</th>
+              <th>Ward</th>
+              <th>Room</th>
+              <th>Status</th>
+              <!-- Actions column removed -->
+            </tr>
+          </thead>
+
+          <tbody id="bedsTbody">
+            <!-- colspan changed from 5 -> 4 -->
+            <tr><td colspan="4" class="empty-row">Loading beds…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- PAGE LOGIC -->
+  <script>
+    const API_BASE = "https://ingest-service-725327609427.us-east5.run.app";
+    let ALL_BEDS = [];
+
+    // Show today's date in the pill
+    function setToday() {
+      const now = new Date();
+      const el = document.getElementById("todayValue");
+      if (!el) return;
+      el.textContent = now.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    }
+
+    // Helper: derive room number from bed_number like "A101" -> "101"
+    function getRoomNumberFromBed(bedNumber) {
+      if (!bedNumber || typeof bedNumber !== "string") return "—";
+      if (bedNumber.length > 1) {
+        return bedNumber.substring(1);
+      }
+      return bedNumber;
+    }
+
+    // Load all beds from backend
+    async function loadBeds() {
+      const tbody = document.getElementById("bedsTbody");
+      try {
+        const res = await fetch(`${API_BASE}/beds`);
+        if (!res.ok) {
+          throw new Error(`Failed to load beds, status ${res.status}`);
+        }
+
+        const data = await res.json();
+        ALL_BEDS = Array.isArray(data) ? data : [];
+
+        populateFilterOptions(ALL_BEDS);
+        renderTable(ALL_BEDS);
+      } catch (err) {
+        console.error("Error loading beds:", err);
+        if (tbody) {
+          // colspan changed from 5 -> 4
+          tbody.innerHTML =
+            '<tr><td colspan="4" class="empty-row">Failed to load beds.</td></tr>';
+        }
+      }
+    }
+
+    // Fill the "All wards" dropdown based on the beds we have
+    function populateFilterOptions(beds) {
+      const wardSelect = document.getElementById("filterWard");
+      if (!wardSelect) return;
+
+      // reset options (keep the default "All wards")
+      wardSelect.innerHTML = '<option value="">All wards</option>';
+
+      const wardLabels = new Set();
+
+      beds.forEach((b) => {
+        // label as "Ward X" using ward_id
+        const label = `Ward ${b.ward_id}`;
+        wardLabels.add(label);
+      });
+
+      Array.from(wardLabels)
+        .sort()
+        .forEach((label) => {
+          const opt = document.createElement("option");
+          opt.value = label;      // value matches label for comparison
+          opt.textContent = label;
+          wardSelect.appendChild(opt);
+        });
+    }
+
+    // Render rows into the table
+    function renderTable(beds) {
+      const tbody = document.getElementById("bedsTbody");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+
+      if (!beds || beds.length === 0) {
+        // colspan changed from 5 -> 4
+        tbody.innerHTML =
+          '<tr><td colspan="4" class="empty-row">No beds found</td></tr>';
+        return;
+      }
+
+      beds.forEach((b) => {
+        const row = document.createElement("tr");
+
+        const wardLabel = `Ward ${b.ward_id}`;
+        const roomNumber = b.room_number || getRoomNumberFromBed(b.bed_number);
+
+        const rawStatus = b.bed_status || "";
+        const statusLower = rawStatus.toLowerCase();
+
+        row.innerHTML = `
+          <td>Bed ${b.bed_number}</td>
+          <td>${wardLabel}</td>
+          <td>Room ${roomNumber}</td>
+          <td>
+            <span class="status-pill status-${statusLower}">${rawStatus}</span>
+          </td>
+        `; <!-- actions cell removed -->
+
+        tbody.appendChild(row);
+      });
+    }
+
+    // Apply ward + status filters when "Apply filters" is clicked
+    function applyFilters() {
+      const wardVal = document.getElementById("filterWard").value;     // e.g. "Ward 1" or ""
+      const statusVal = document.getElementById("filterStatus").value; // e.g. "available" or ""
+
+      const filtered = ALL_BEDS.filter((b) => {
+        const wardLabel = `Ward ${b.ward_id}`;
+        const statusLower = (b.bed_status || "").toLowerCase();
+
+        const matchesWard =
+          wardVal === "" || wardLabel === wardVal;
+
+        const matchesStatus =
+          statusVal === "" || statusLower === statusVal.toLowerCase();
+
+        return matchesWard && matchesStatus;
+      });
+
+      renderTable(filtered);
+    }
+
+    // Initial page setup
+    window.addEventListener("load", () => {
+      setToday();
+      loadBeds();
+
+      const applyBtn = document.getElementById("applyFiltersBtn");
+      if (applyBtn) {
+        applyBtn.addEventListener("click", applyFilters);
+      }
+    });
+  </script>
+
+  <!-- FIREBASE / AUTH USER DISPLAY -->
+  <script type="module">
+    import { loadUserProfile, logout } from "../shared/auth.js";
+
+    loadUserProfile().then((data) => {
+      document.getElementById("userName").textContent = data.fullName;
+      document.getElementById("userRole").textContent = data.role;
+      document.getElementById("userInitials").textContent =
+        data.fullName.split(" ").map((n) => n[0]).join("");
+    });
+
+    document.querySelector(".logout-link").addEventListener("click", (e) => {
+      e.preventDefault();
+      logout();
+    });
+  </script>
+</body>
+</html>
